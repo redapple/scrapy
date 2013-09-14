@@ -1,7 +1,6 @@
 import cgi
 import unittest
 import xmlrpclib
-from cStringIO import StringIO
 from urlparse import urlparse
 
 from scrapy.http import Request, FormRequest, XmlRpcRequest, Headers, HtmlResponse
@@ -175,6 +174,11 @@ class RequestTest(unittest.TestCase):
         r = self.request_class("http://www.example.com", method=u"POST")
         assert isinstance(r.method, str)
 
+    def test_immutable_attributes(self):
+        r = self.request_class("http://example.com")
+        self.assertRaises(AttributeError, setattr, r, 'url', 'http://example2.com')
+        self.assertRaises(AttributeError, setattr, r, 'body', 'xxx')
+
 
 class FormRequestTest(RequestTest):
 
@@ -319,6 +323,18 @@ class FormRequestTest(RequestTest):
         req = self.request_class.from_response(response, dont_click=True)
         fs = _qs(req)
         self.assertEqual(fs, {'i1': ['i1v']})
+
+    def test_from_response_dont_submit_reset_as_input(self):
+        response = _buildresponse(
+            """<form>
+            <input type="hidden" name="i1" value="i1v">
+            <input type="text" name="i2" value="i2v">
+            <input type="reset" name="resetme">
+            <input type="submit" name="i3" value="i3v">
+            </form>""")
+        req = self.request_class.from_response(response, dont_click=True)
+        fs = _qs(req)
+        self.assertEqual(fs, {'i1': ['i1v'], 'i2': ['i2v']})
 
     def test_from_response_multiple_clickdata(self):
         response = _buildresponse(

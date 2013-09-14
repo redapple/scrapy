@@ -76,15 +76,7 @@ single Python class that defines one or more of the following methods:
       download function; it'll return that Response. Response middleware is
       always called on every Response.
 
-      If it returns a :class:`~scrapy.http.Request` object, the returned request will be
-      rescheduled (in the Scheduler) to be downloaded in the future. The callback of
-      the original request will always be called. If the new request has a callback
-      it will be called with the response downloaded, and the output of that callback
-      will then be passed to the original callback. If the new request doesn't have a
-      callback, the response downloaded will be just passed to the original request
-      callback.
-
-      If it returns an :exc:`~scrapy.exceptions.IgnoreRequest` exception, the
+      If it raises an :exc:`~scrapy.exceptions.IgnoreRequest` exception, the
       entire request will be dropped completely and its callback never called.
 
       :param request: the request being processed
@@ -95,14 +87,18 @@ single Python class that defines one or more of the following methods:
 
    .. method:: process_response(request, response, spider)
 
-      :meth:`process_response` should return a :class:`~scrapy.http.Response`
-      object or raise a :exc:`~scrapy.exceptions.IgnoreRequest` exception.
+      :meth:`process_response` should return either a :class:`~scrapy.http.Response`
+      object, a :class:`~scrapy.http.Request` object or 
+      raise a :exc:`~scrapy.exceptions.IgnoreRequest` exception.
 
       If it returns a :class:`~scrapy.http.Response` (it could be the same given
       response, or a brand-new one), that response will continue to be processed
       with the :meth:`process_response` of the next middleware in the pipeline.
 
-      If it returns an :exc:`~scrapy.exceptions.IgnoreRequest` exception, the
+      If it returns a :class:`~scrapy.http.Request` object, the returned request will be
+      rescheduled to be downloaded in the future.
+
+      If it raises an :exc:`~scrapy.exceptions.IgnoreRequest` exception, the
       response will be dropped completely and its callback never called.
 
       :param request: the request that originated the response
@@ -367,8 +363,6 @@ In order to use this policy, set:
 
 * :setting:`HTTPCACHE_POLICY` to ``scrapy.contrib.httpcache.RFC2616Policy``
 
-This is the default cache policy.
-
 
 .. _httpcache-storage-dbm:
 
@@ -538,6 +532,19 @@ HttpCompressionMiddleware
 
    This middleware allows compressed (gzip, deflate) traffic to be
    sent/received from web sites.
+
+HttpCompressionMiddleware Settings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. setting:: COMPRESSION_ENABLED
+
+COMPRESSION_ENABLED
+^^^^^^^^^^^^^^^^^^^
+
+Default: ``True``
+
+Whether the Compression middleware will be enabled.
+
 
 ChunkedTransferMiddleware
 -------------------------

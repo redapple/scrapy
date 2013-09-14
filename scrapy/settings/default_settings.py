@@ -26,6 +26,8 @@ CLOSESPIDER_ERRORCOUNT = 0
 
 COMMANDS_MODULE = ''
 
+COMPRESSION_ENABLED = True
+
 CONCURRENT_ITEMS = 100
 
 CONCURRENT_REQUESTS = 16
@@ -53,9 +55,10 @@ DOWNLOAD_DELAY = 0
 DOWNLOAD_HANDLERS = {}
 DOWNLOAD_HANDLERS_BASE = {
     'file': 'scrapy.core.downloader.handlers.file.FileDownloadHandler',
-    'http': 'scrapy.core.downloader.handlers.http.HttpDownloadHandler',
-    'https': 'scrapy.core.downloader.handlers.http.HttpDownloadHandler',
+    'http': 'scrapy.core.downloader.handlers.http.HTTPDownloadHandler',
+    'https': 'scrapy.core.downloader.handlers.http.HTTPDownloadHandler',
     's3': 'scrapy.core.downloader.handlers.s3.S3DownloadHandler',
+    'ftp': 'scrapy.core.downloader.handlers.ftp.FTPDownloadHandler',
 }
 
 DOWNLOAD_TIMEOUT = 180      # 3mins
@@ -63,7 +66,7 @@ DOWNLOAD_TIMEOUT = 180      # 3mins
 DOWNLOADER_DEBUG = False
 
 DOWNLOADER_HTTPCLIENTFACTORY = 'scrapy.core.downloader.webclient.ScrapyHTTPClientFactory'
-DOWNLOADER_CLIENTCONTEXTFACTORY = 'scrapy.core.downloader.webclient.ScrapyClientContextFactory'
+DOWNLOADER_CLIENTCONTEXTFACTORY = 'scrapy.core.downloader.contextfactory.ScrapyClientContextFactory'
 
 DOWNLOADER_MIDDLEWARES = {}
 

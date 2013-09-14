@@ -65,6 +65,12 @@ Yes. Support for HTTP proxies is provided (since Scrapy 0.8) through the HTTP
 Proxy downloader middleware. See
 :class:`~scrapy.contrib.downloadermiddleware.httpproxy.HttpProxyMiddleware`.
 
+How can I scrape an item with attributes in different pages?
+------------------------------------------------------------
+
+See :ref:`topics-request-response-ref-request-callback-arguments`.
+
+
 Scrapy crashes with: ImportError: No module named win32api
 ----------------------------------------------------------
 
@@ -78,8 +84,8 @@ How can I simulate a user login in my spider?
 
 See :ref:`topics-request-response-ref-request-userlogin`.
 
-Does Scrapy crawl in breath-first or depth-first order?
--------------------------------------------------------
+Does Scrapy crawl in breadth-first or depth-first order?
+--------------------------------------------------------
 
 By default, Scrapy uses a `LIFO`_ queue for storing pending requests, which
 basically means that it crawls in `DFO order`_. This order is more convenient
@@ -173,7 +179,7 @@ higher) in your spider::
 
         name = 'myspider'
 
-        DOWNLOAD_DELAY = 2
+        download_delay = 2
 
         # [ ... rest of the spider code ... ]
 

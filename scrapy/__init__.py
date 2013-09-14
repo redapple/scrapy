@@ -7,7 +7,7 @@ version_info = tuple(__version__.split('.')[:3])
 
 import sys, os, warnings
 
-if sys.version_info < (2,6):
+if sys.version_info < (2, 6):
     print "Scrapy %s requires Python 2.6 or above" % __version__
     sys.exit(1)
 
@@ -43,3 +43,8 @@ except ImportError:
     pass
 else:
     optional_features.add('django')
+
+from twisted import version as _txv
+twisted_version = (_txv.major, _txv.minor, _txv.micro)
+if twisted_version >= (11, 1, 0):
+    optional_features.add('http11')

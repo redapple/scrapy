@@ -32,6 +32,9 @@ class Command(ScrapyCommand):
                 self.settings.overrides['FEED_URI'] = 'stdout:'
             else:
                 self.settings.overrides['FEED_URI'] = opts.output
+            valid_output_formats = self.settings['FEED_EXPORTERS'].keys() + self.settings['FEED_EXPORTERS_BASE'].keys()
+            if opts.output_format not in valid_output_formats:
+                raise UsageError('Invalid/unrecognized output format: %s, Expected %s' % (opts.output_format, valid_output_formats))
             self.settings.overrides['FEED_FORMAT'] = opts.output_format
 
     def run(self, args, opts):
@@ -40,6 +43,8 @@ class Command(ScrapyCommand):
         elif len(args) > 1:
             raise UsageError("running 'scrapy crawl' with more than one spider is no longer supported")
         spname = args[0]
-        spider = self.crawler.spiders.create(spname, **opts.spargs)
-        self.crawler.crawl(spider)
-        self.crawler.start()
+
+        crawler = self.crawler_process.create_crawler()
+        spider = crawler.spiders.create(spname, **opts.spargs)
+        crawler.crawl(spider)
+        self.crawler_process.start()

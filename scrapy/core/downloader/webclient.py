@@ -1,11 +1,9 @@
 from time import time
 from urlparse import urlparse, urlunparse, urldefrag
 
-from twisted.internet.ssl import ClientContextFactory
 from twisted.web.client import HTTPClientFactory
 from twisted.web.http import HTTPClient
 from twisted.internet import defer
-from OpenSSL import SSL
 
 from scrapy.http import Headers
 from scrapy.utils.httpobj import urlparse_cached
@@ -60,12 +58,15 @@ class ScrapyHTTPPageGetter(HTTPClient):
         self.factory.gotHeaders(self.headers)
 
     def connectionLost(self, reason):
+        self._connection_lost_reason = reason
         HTTPClient.connectionLost(self, reason)
         self.factory.noPage(reason)
 
     def handleResponse(self, response):
         if self.factory.method.upper() == 'HEAD':
             self.factory.page('')
+        elif self.length is not None and self.length > 0:
+            self.factory.noPage(self._connection_lost_reason)
         else:
             self.factory.page(response)
         self.transport.loseConnection()
@@ -79,7 +80,7 @@ class ScrapyHTTPPageGetter(HTTPClient):
 
 class ScrapyHTTPClientFactory(HTTPClientFactory):
     """Scrapy implementation of the HTTPClientFactory overwriting the
-    serUrl method to make use of our Url object that cache the parse 
+    serUrl method to make use of our Url object that cache the parse
     result.
     """
 
@@ -137,21 +138,3 @@ class ScrapyHTTPClientFactory(HTTPClientFactory):
         self.headers_time = time()
         self.response_headers = headers
 
-
-
-class ScrapyClientContextFactory(ClientContextFactory):
-    "A SSL context factory which is more permissive against SSL bugs."
-    # see https://github.com/scrapy/scrapy/issues/82
-    # and https://github.com/scrapy/scrapy/issues/26
-
-    def __init__(self):
-        # see this issue on why we use TLSv1_METHOD by default
-        # https://github.com/scrapy/scrapy/issues/194
-        self.method = SSL.TLSv1_METHOD
-
-    def getContext(self):
-        ctx = ClientContextFactory.getContext(self)
-        # Enable all workarounds to SSL bugs as documented by
-        # http://www.openssl.org/docs/ssl/SSL_CTX_set_options.html
-        ctx.set_options(SSL.OP_ALL)
-        return ctx

@@ -3,17 +3,18 @@ Item Exporters are used to export/serialize items into different formats.
 """
 
 import csv
+import sys
 import pprint
 import marshal
-import json
 import cPickle as pickle
 from xml.sax.saxutils import XMLGenerator
 from scrapy.utils.serialize import ScrapyJSONEncoder
+from scrapy.item import BaseItem
 
+__all__ = ['BaseItemExporter', 'PprintItemExporter', 'PickleItemExporter',
+           'CsvItemExporter', 'XmlItemExporter', 'JsonLinesItemExporter',
+           'JsonItemExporter', 'MarshalItemExporter']
 
-__all__ = ['BaseItemExporter', 'PprintItemExporter', 'PickleItemExporter', \
-    'CsvItemExporter', 'XmlItemExporter', 'JsonLinesItemExporter', \
-    'JsonItemExporter', 'MarshalItemExporter']
 
 class BaseItemExporter(object):
 
@@ -63,8 +64,8 @@ class BaseItemExporter(object):
                 field_iter = self.fields_to_export
             else:
                 nonempty_fields = set(item.keys())
-                field_iter = (x for x in self.fields_to_export if x in \
-                    nonempty_fields)
+                field_iter = (x for x in self.fields_to_export if x in
+                              nonempty_fields)
         for field_name in field_iter:
             if field_name in item:
                 field = item.fields[field_name]
@@ -78,7 +79,7 @@ class BaseItemExporter(object):
 class JsonLinesItemExporter(BaseItemExporter):
 
     def __init__(self, file, **kwargs):
-        self._configure(kwargs)
+        self._configure(kwargs, dont_fail=True)
         self.file = file
         self.encoder = ScrapyJSONEncoder(**kwargs)
 
@@ -90,7 +91,7 @@ class JsonLinesItemExporter(BaseItemExporter):
 class JsonItemExporter(JsonLinesItemExporter):
 
     def __init__(self, file, **kwargs):
-        self._configure(kwargs)
+        self._configure(kwargs, dont_fail=True)
         self.file = file
         self.encoder = ScrapyJSONEncoder(**kwargs)
         self.first_item = True
@@ -141,8 +142,22 @@ class XmlItemExporter(BaseItemExporter):
             for value in serialized_value:
                 self._export_xml_field('value', value)
         else:
-            self.xg.characters(serialized_value)
+            self._xg_characters(serialized_value)
         self.xg.endElement(name)
+
+    # Workaround for http://bugs.python.org/issue17606
+    # Before Python 2.7.4 xml.sax.saxutils required bytes;
+    # since 2.7.4 it requires unicode. The bug is likely to be
+    # fixed in 2.7.6, but 2.7.6 will still support unicode,
+    # and Python 3.x will require unicode, so ">= 2.7.4" should be fine.
+    if sys.version_info[:3] >= (2, 7, 4):
+        def _xg_characters(self, serialized_value):
+            if not isinstance(serialized_value, unicode):
+                serialized_value = serialized_value.decode(self.encoding)
+            return self.xg.characters(serialized_value)
+    else:
+        def _xg_characters(self, serialized_value):
+            return self.xg.characters(serialized_value)
 
 
 class CsvItemExporter(BaseItemExporter):
@@ -158,7 +173,7 @@ class CsvItemExporter(BaseItemExporter):
         if isinstance(value, (list, tuple)):
             try:
                 value = self._join_multivalued.join(value)
-            except TypeError: # list in value may not contain strings
+            except TypeError:  # list in value may not contain strings
                 pass
         return super(CsvItemExporter, self)._to_str_if_unicode(value)
 
@@ -167,8 +182,8 @@ class CsvItemExporter(BaseItemExporter):
             self._headers_not_written = False
             self._write_headers_and_set_fields_to_export(item)
 
-        fields = self._get_serialized_fields(item, default_value='', \
-            include_empty=True)
+        fields = self._get_serialized_fields(item, default_value='',
+                                             include_empty=True)
         values = [x[1] for x in fields]
         self.csv_writer.writerow(values)
 
@@ -183,7 +198,7 @@ class PickleItemExporter(BaseItemExporter):
 
     def __init__(self, file, protocol=2, **kwargs):
         self._configure(kwargs)
-        self.file =file
+        self.file = file
         self.protocol = protocol
 
     def export_item(self, item):
@@ -210,3 +225,31 @@ class PprintItemExporter(BaseItemExporter):
     def export_item(self, item):
         itemdict = dict(self._get_serialized_fields(item))
         self.file.write(pprint.pformat(itemdict) + '\n')
+
+
+class PythonItemExporter(BaseItemExporter):
+    """The idea behind this exporter is to have a mechanism to serialize items
+    to built-in python types so any serialization library (like
+    json, msgpack, binc, etc) can be used on top of it. Its main goal is to
+    seamless support what BaseItemExporter does plus nested items.
+    """
+
+    def serialize_field(self, field, name, value):
+        serializer = field.get('serializer', self._serialize_value)
+        return serializer(value)
+
+    def _serialize_value(self, value):
+        if isinstance(value, BaseItem):
+            return self.export_item(value)
+        if isinstance(value, dict):
+            return dict(self._serialize_dict(value))
+        if hasattr(value, '__iter__'):
+            return [self._serialize_value(v) for v in value]
+        return self._to_str_if_unicode(value)
+
+    def _serialize_dict(self, value):
+        for key, val in value.iteritems():
+            yield key, self._serialize_value(val)
+
+    def export_item(self, item):
+        return dict(self._get_serialized_fields(item))

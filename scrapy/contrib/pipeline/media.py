@@ -7,6 +7,7 @@ from scrapy import log
 from scrapy.utils.request import request_fingerprint
 from scrapy.utils.misc import arg_to_iter
 
+
 class MediaPipeline(object):
 
     LOG_FAILED_RESULTS = True
@@ -19,7 +20,6 @@ class MediaPipeline(object):
             self.waiting = defaultdict(list)
 
     def __init__(self, download_func=None):
-        self.spiderinfo = {}
         self.download_func = download_func
 
     @classmethod
@@ -32,13 +32,10 @@ class MediaPipeline(object):
         return pipe
 
     def open_spider(self, spider):
-        self.spiderinfo[spider] = self.SpiderInfo(spider)
-
-    def close_spider(self, spider):
-        del self.spiderinfo[spider]
+        self.spiderinfo = self.SpiderInfo(spider)
 
     def process_item(self, item, spider):
-        info = self.spiderinfo[spider]
+        info = self.spiderinfo
         requests = arg_to_iter(self.get_media_requests(item, info))
         dlist = [self._process_request(r, info) for r in requests]
         dfd = DeferredList(dlist, consumeErrors=1)
@@ -69,7 +66,7 @@ class MediaPipeline(object):
         dfd.addCallback(self._check_media_to_download, request, info)
         dfd.addBoth(self._cache_result_and_execute_waiters, fp, info)
         dfd.addErrback(log.err, spider=info.spider)
-        return dfd.addBoth(lambda _: wad) # it must return wad at last
+        return dfd.addBoth(lambda _: wad)  # it must return wad at last
 
     def _check_media_to_download(self, result, request, info):
         if result is not None:
@@ -95,11 +92,11 @@ class MediaPipeline(object):
             result.frames = []
             result.stack = None
         info.downloading.remove(fp)
-        info.downloaded[fp] = result # cache result
+        info.downloaded[fp] = result  # cache result
         for wad in info.waiting.pop(fp):
             defer_result(result).chainDeferred(wad)
 
-    ### Overradiable Interface
+    ### Overridable Interface
     def media_to_download(self, request, info):
         """Check request before starting download"""
         pass
