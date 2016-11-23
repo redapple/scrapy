@@ -60,13 +60,13 @@ class SpiderLoaderTest(unittest.TestCase):
         self.assertEqual(self.spider_loader.find_by_request(Request('http://spider3.com/onlythis')),
             ['spider3'])
 
-    def test_load_spider_module(self):
+    def test_load_spider_module1(self):
         module = 'tests.test_spiderloader.test_spiders.spider1'
         settings = Settings({'SPIDER_MODULES': [module]})
         self.spider_loader = SpiderLoader.from_settings(settings)
         assert len(self.spider_loader._spiders) == 1
 
-    def test_load_spider_module(self):
+    def test_load_spider_module2(self):
         prefix = 'tests.test_spiderloader.test_spiders.'
         module = ','.join(prefix + s for s in ('spider1', 'spider2'))
         settings = Settings({'SPIDER_MODULES': module})
