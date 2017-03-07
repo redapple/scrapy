@@ -276,8 +276,10 @@ Default: ``0``
 
 Amount of spaces used to indent the output on each level. If ``FEED_EXPORT_INDENT``
 is a non-negative integer, then array elements and object members will be pretty-printed
-with that indent level. An indent level of ``0``, or negative, will put each item on a new line.
-``None`` selects the most compact representation
+with that indent level. An indent level of ``0`` (or negative) will put each item on a new line.
+``None`` selects the most compact representation.
+Alternatively, the ``compact`` and ``lines`` string constants are supported, translating
+to ``None`` and ``0`` respectively.
 
 Currently used by :class:`~scrapy.exporters.JsonItemExporter`
 and :class:`~scrapy.exporters.XmlItemExporter`

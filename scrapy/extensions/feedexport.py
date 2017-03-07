@@ -172,9 +172,21 @@ class FeedExporter(object):
         self.store_empty = settings.getbool('FEED_STORE_EMPTY')
         self._exporting = False
         self.export_fields = settings.getlist('FEED_EXPORT_FIELDS') or None
-        self.indent = None
-        if settings.get('FEED_EXPORT_INDENT') is not None:
-            self.indent = settings.getint('FEED_EXPORT_INDENT')
+        indent = settings.get('FEED_EXPORT_INDENT')
+        if indent is None or isinstance(indent, int):
+            self.indent = indent
+        elif isinstance(indent, six.string_types):
+            try:
+                self.indent = settings.getint('FEED_EXPORT_INDENT')
+            except ValueError:
+                indent = indent.lower().strip()
+                if indent == 'compact':
+                    self.indent = None
+                elif indent == 'lines':
+                    self.indent = 0
+        if not hasattr(self, 'indent'):
+            logger.info('Unsupported value for FEED_EXPORT_INDENT setting, using 0 ("lines") as default')
+            self.indent = 0
         uripar = settings['FEED_URI_PARAMS']
         self._uripar = load_object(uripar) if uripar else lambda x, y: None
 

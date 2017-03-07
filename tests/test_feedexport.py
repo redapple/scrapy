@@ -465,13 +465,26 @@ class FeedExportTest(unittest.TestCase):
             },
             {
                 'format': 'json',
+                'indent': 'compact',
+                'expected': b'[{"foo": ["bar"]},{"key": "value"}]',
+            },
+            {
+                'format': 'json',
                 'indent': -1,
                 'expected': b"""
 [
 {"foo": ["bar"]},
 {"key": "value"}
-]
-""",
+]""",
+            },
+            {
+                'format': 'json',
+                'indent': 'lines',
+                'expected': b"""
+[
+{"foo": ["bar"]},
+{"key": "value"}
+]""",
             },
             {
                 'format': 'json',
@@ -480,8 +493,7 @@ class FeedExportTest(unittest.TestCase):
 [
 {"foo": ["bar"]},
 {"key": "value"}
-]
-""",
+]""",
             },
             {
                 'format': 'json',
@@ -539,7 +551,24 @@ class FeedExportTest(unittest.TestCase):
             },
             {
                 'format': 'xml',
+                'indent': 'compact',
+                'expected': b"""
+<?xml version="1.0" encoding="utf-8"?>
+<items><item><foo><value>bar</value></foo></item><item><key>value</key></item></items>""",
+            },
+            {
+                'format': 'xml',
                 'indent': -1,
+                'expected': b"""
+<?xml version="1.0" encoding="utf-8"?>
+<items>
+<item><foo><value>bar</value></foo></item>
+<item><key>value</key></item>
+</items>""",
+            },
+            {
+                'format': 'xml',
+                'indent': 'lines',
                 'expected': b"""
 <?xml version="1.0" encoding="utf-8"?>
 <items>
