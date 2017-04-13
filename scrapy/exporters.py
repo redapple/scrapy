@@ -36,6 +36,7 @@ class BaseItemExporter(object):
         self.encoding = options.pop('encoding', None)
         self.fields_to_export = options.pop('fields_to_export', None)
         self.export_empty_fields = options.pop('export_empty_fields', False)
+        self.beautify = options.pop('beautify', False)
         self.indent = options.pop('indent', None)
         if not dont_fail and options:
             raise TypeError("Unexpected options: %s" % ', '.join(options.keys()))
@@ -102,30 +103,23 @@ class JsonItemExporter(BaseItemExporter):
         # there is a small difference between the behaviour or JsonItemExporter.indent
         # and ScrapyJSONEncoder.indent. ScrapyJSONEncoder.indent=None is needed to prevent
         # the addition of newlines everywhere
-        json_indent = self.indent if self.indent is not None and self.indent > 0 else None
+        json_indent = self.indent if self.beautify and self.indent > 0 else None
         kwargs.setdefault('indent', json_indent)
         kwargs.setdefault('ensure_ascii', not self.encoding)
         self.encoder = ScrapyJSONEncoder(**kwargs)
         self.first_item = True
 
-    def _beautify_newline(self):
-        if self.indent is not None:
-            self.file.write(b'\n')
-
     def start_exporting(self):
-        self.file.write(b"[")
-        self._beautify_newline()
+        self.file.write(b"[\n")
 
     def finish_exporting(self):
-        self._beautify_newline()
-        self.file.write(b"]")
+        self.file.write(b"\n]")
 
     def export_item(self, item):
         if self.first_item:
             self.first_item = False
         else:
-            self.file.write(b',')
-            self._beautify_newline()
+            self.file.write(b',\n')
         itemdict = dict(self._get_serialized_fields(item))
         data = self.encoder.encode(itemdict)
         self.file.write(to_bytes(data, self.encoding))
@@ -142,17 +136,17 @@ class XmlItemExporter(BaseItemExporter):
         self.xg = XMLGenerator(file, encoding=self.encoding)
 
     def _beautify_newline(self, new_item=False):
-        if self.indent is not None and (self.indent > 0 or new_item):
+        if self.beautify and (self.indent > 0 or new_item):
             self._xg_characters('\n')
 
     def _beautify_indent(self, depth=1):
-        if self.indent:
+        if self.beautify and self.indent:
             self._xg_characters(' ' * self.indent * depth)
 
     def start_exporting(self):
         self.xg.startDocument()
         self.xg.startElement(self.root_element, {})
-        self._beautify_newline(new_item=True)
+        self._xg_characters('\n')
 
     def export_item(self, item):
         self._beautify_indent(depth=1)
@@ -162,7 +156,7 @@ class XmlItemExporter(BaseItemExporter):
             self._export_xml_field(name, value, depth=2)
         self._beautify_indent(depth=1)
         self.xg.endElement(self.item_element)
-        self._beautify_newline(new_item=True)
+        self._xg_characters('\n')
 
     def finish_exporting(self):
         self.xg.endElement(self.root_element)

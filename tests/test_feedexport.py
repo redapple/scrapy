@@ -319,14 +319,14 @@ class FeedExportTest(unittest.TestCase):
     @defer.inlineCallbacks
     def test_export_no_items_store_empty(self):
         formats = (
-            ('json', b'[]'),
+            ('json', b'[\n\n]'),
             ('jsonlines', b''),
-            ('xml', b'<?xml version="1.0" encoding="utf-8"?>\n<items></items>'),
+            ('xml', b'<?xml version="1.0" encoding="utf-8"?>\n<items>\n</items>'),
             ('csv', b''),
         )
 
         for fmt, expctd in formats:
-            settings = {'FEED_FORMAT': fmt, 'FEED_STORE_EMPTY': True, 'FEED_EXPORT_INDENT': None}
+            settings = {'FEED_FORMAT': fmt, 'FEED_STORE_EMPTY': True}
             data = yield self.exported_no_data(settings)
             self.assertEqual(data, expctd)
 
@@ -425,25 +425,25 @@ class FeedExportTest(unittest.TestCase):
         header = ['foo']
 
         formats = {
-            'json': u'[{"foo": "Test\\u00d6"}]'.encode('utf-8'),
+            'json': u'[\n{"foo": "Test\\u00d6"}\n]'.encode('utf-8'),
             'jsonlines': u'{"foo": "Test\\u00d6"}\n'.encode('utf-8'),
-            'xml': u'<?xml version="1.0" encoding="utf-8"?>\n<items><item><foo>Test\xd6</foo></item></items>'.encode('utf-8'),
+            'xml': u'<?xml version="1.0" encoding="utf-8"?>\n<items>\n<item><foo>Test\xd6</foo></item>\n</items>'.encode('utf-8'),
             'csv': u'foo\r\nTest\xd6\r\n'.encode('utf-8'),
         }
 
         for format, expected in formats.items():
-            settings = {'FEED_FORMAT': format, 'FEED_EXPORT_INDENT': None}
+            settings = {'FEED_FORMAT': format}
             data = yield self.exported_data(items, settings)
             self.assertEqual(expected, data)
 
         formats = {
-            'json': u'[{"foo": "Test\xd6"}]'.encode('latin-1'),
+            'json': u'[\n{"foo": "Test\xd6"}\n]'.encode('latin-1'),
             'jsonlines': u'{"foo": "Test\xd6"}\n'.encode('latin-1'),
-            'xml': u'<?xml version="1.0" encoding="latin-1"?>\n<items><item><foo>Test\xd6</foo></item></items>'.encode('latin-1'),
+            'xml': u'<?xml version="1.0" encoding="latin-1"?>\n<items>\n<item><foo>Test\xd6</foo></item>\n</items>'.encode('latin-1'),
             'csv': u'foo\r\nTest\xd6\r\n'.encode('latin-1'),
         }
 
-        settings = {'FEED_EXPORT_INDENT': None, 'FEED_EXPORT_ENCODING': 'latin-1'}
+        settings = {'FEED_EXPORT_ENCODING': 'latin-1'}
         for format, expected in formats.items():
             settings['FEED_FORMAT'] = format
             data = yield self.exported_data(items, settings)
@@ -460,26 +460,17 @@ class FeedExportTest(unittest.TestCase):
             # JSON
             {
                 'format': 'json',
-                'indent': None,
-                'expected': b'[{"foo": ["bar"]},{"key": "value"}]',
-            },
-            {
-                'format': 'json',
-                'indent': 'compact',
-                'expected': b'[{"foo": ["bar"]},{"key": "value"}]',
+                'beautify': False,
+                'indent': 32,
+                'expected': b'''
+[
+{"foo": ["bar"]},
+{"key": "value"}
+]''',
             },
             {
                 'format': 'json',
                 'indent': -1,
-                'expected': b"""
-[
-{"foo": ["bar"]},
-{"key": "value"}
-]""",
-            },
-            {
-                'format': 'json',
-                'indent': 'lines',
                 'expected': b"""
 [
 {"foo": ["bar"]},
@@ -544,21 +535,8 @@ class FeedExportTest(unittest.TestCase):
             # XML
             {
                 'format': 'xml',
-                'indent': None,
-                'expected': b"""
-<?xml version="1.0" encoding="utf-8"?>
-<items><item><foo><value>bar</value></foo></item><item><key>value</key></item></items>""",
-            },
-            {
-                'format': 'xml',
-                'indent': 'compact',
-                'expected': b"""
-<?xml version="1.0" encoding="utf-8"?>
-<items><item><foo><value>bar</value></foo></item><item><key>value</key></item></items>""",
-            },
-            {
-                'format': 'xml',
-                'indent': -1,
+                'beautify': False,
+                'indent': 32,
                 'expected': b"""
 <?xml version="1.0" encoding="utf-8"?>
 <items>
@@ -568,7 +546,7 @@ class FeedExportTest(unittest.TestCase):
             },
             {
                 'format': 'xml',
-                'indent': 'lines',
+                'indent': -1,
                 'expected': b"""
 <?xml version="1.0" encoding="utf-8"?>
 <items>
@@ -635,9 +613,11 @@ class FeedExportTest(unittest.TestCase):
 </items>""",
             },
         ]
-
         for row in test_cases:
-            settings = {'FEED_FORMAT': row['format'], 'FEED_EXPORT_INDENT': row['indent']}
+            settings = {'FEED_FORMAT': row['format'],
+                        'FEED_EXPORT_BEAUTIFY': row.get('beautify', True),
+                        'FEED_EXPORT_INDENT': row['indent']}
             data = yield self.exported_data(items, settings)
-            print(row['format'], row['indent'])
-            self.assertEqual(row['expected'].strip(), data)
+            self.assertEqual(row['expected'].strip(), data,
+                "\nExpected:\n{}\nGot:\n{}".format(row['expected'].strip(),
+                                                 data))

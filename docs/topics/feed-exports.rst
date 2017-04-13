@@ -267,22 +267,38 @@ If an exporter requires a fixed set of fields (this is the case for
 is empty or None, then Scrapy tries to infer field names from the
 exported data - currently it uses field names from the first item.
 
+.. setting:: FEED_EXPORT_BEAUTIFY
+
+FEED_EXPORT_BEAUTIFY
+--------------------
+
+Default: ``False``
+
+Pretty-print exported items.
+
+Currently used by :class:`~scrapy.exporters.JsonItemExporter`
+and :class:`~scrapy.exporters.XmlItemExporter`.
+
+If ``FEED_EXPORT_BEAUTIFY`` is set to ``False``, exporters supporting
+this option will write each item on a new line.
+This format remains human readable yet is compact enough.
+
+If ``FEED_EXPORT_BEAUTIFY`` is ``True``, then array elements and object
+members will be pretty-printed using :setting:`FEED_EXPORT_INDENT` spaces.
+This is more human readable but to the expense of extra whitespace characters.
+
 .. setting:: FEED_EXPORT_INDENT
 
 FEED_EXPORT_INDENT
 ------------------
 
-Default: ``0``
+Default: ``4``
 
-Amount of spaces used to indent the output on each level. If ``FEED_EXPORT_INDENT``
-is a non-negative integer, then array elements and object members will be pretty-printed
-with that indent level. An indent level of ``0`` (or negative) will put each item on a new line.
-``None`` selects the most compact representation.
-Alternatively, the ``compact`` and ``lines`` string constants are supported, translating
-to ``None`` and ``0`` respectively.
+Amount of spaces used to indent the output on each level.
+This setting is effective only if :setting:`FEED_EXPORT_INDENT` is ``True``.
 
 Currently used by :class:`~scrapy.exporters.JsonItemExporter`
-and :class:`~scrapy.exporters.XmlItemExporter`
+and :class:`~scrapy.exporters.XmlItemExporter`.
 
 .. setting:: FEED_STORE_EMPTY
 
